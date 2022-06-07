@@ -1,0 +1,45 @@
+pkgname=libubox
+pkgver=r497.cce5e35
+pkgrel=1
+pkgdesc="libubox from OpenWrt system"
+arch=('i686' 'x86_64')
+url='https://git.openwrt.org/project/libubox.git#commit=cce5e351278b307af7f69931971e3d4e060117d7'
+license=('GPL')
+depends=()
+makedepends=('cmake' 'git')
+conflicts=()
+source=("${pkgname}::git+${url}")
+sha1sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$pkgname"
+  git clean -xfd && git reset --hard
+
+  if [ -d "${startdir}/patches" ]; then
+    for patch in "${startdir}"/patches/*.patch; do
+      patch --forward --strip=1 --input="$patch"
+    done
+  fi
+}
+
+build() {
+  mkdir "${pkgname}/build"
+  cd "${pkgname}/build"
+
+  cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_LUA=OFF \
+    -DBUILD_EXAMPLES=OFF
+  make
+}
+
+package() {
+  cd "${pkgname}/build"
+  DESTDIR="${pkgdir}" make install
+}

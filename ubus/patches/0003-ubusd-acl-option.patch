@@ -1,0 +1,105 @@
+From d9bbc08632e2015e49bc2aead389bc0f1f788f7b Mon Sep 17 00:00:00 2001
+From: Maxim Anisimov <maxim.anisimov.ua@gmail.com>
+Date: Mon, 20 Sep 2021 09:50:49 +0300
+Subject: [PATCH 3/3] ubusd acl option
+
+---
+ CMakeLists.txt  |  5 +++++
+ ubusd_acl.c     | 18 ++++++++++++++++++
+ ubusd_monitor.c |  2 ++
+ 3 files changed, 25 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a885c69..469826a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,6 +12,7 @@ ADD_DEFINITIONS(-Os -std=gnu99 -g3 -Wmissing-declarations -Wno-unused-parameter)
+ OPTION(BUILD_LUA "build Lua plugin" ON)
+ OPTION(BUILD_EXAMPLES "build examples" ON)
+ OPTION(ENABLE_SYSTEMD "systemd support" OFF)
++OPTION(ENABLE_ACL "acl support" OFF)
+ 
+ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+ SET(UBUS_UNIX_SOCKET "/var/run/ubus/ubus.sock")
+@@ -100,3 +101,7 @@ IF(ENABLE_SYSTEMD)
+ 
+   ADD_SUBDIRECTORY(systemd)
+ ENDIF()
++
++IF (ENABLE_ACL)
++  ADD_DEFINITIONS(-DENABLE_ACL)
++ENDIF()
+diff --git a/ubusd_acl.c b/ubusd_acl.c
+index e050e2c..e654864 100644
+--- a/ubusd_acl.c
++++ b/ubusd_acl.c
+@@ -68,11 +68,14 @@ struct ubusd_acl_file {
+ };
+ 
+ const char *ubusd_acl_dir = "/usr/share/acl.d";
++#ifdef ENABLE_ACL
+ static struct blob_buf bbuf;
++#endif
+ static struct avl_tree ubusd_acls;
+ static int ubusd_acl_seq;
+ static struct ubus_object *acl_obj;
+ 
++#ifdef ENABLE_ACL
+ static int
+ ubusd_acl_match_cred(struct ubus_client *cl, struct ubusd_acl_obj *obj)
+ {
+@@ -164,6 +167,14 @@ ubusd_acl_check(struct ubus_client *cl, const char *obj,
+ 
+ 	return -1;
+ }
++#else
++int
++ubusd_acl_check(struct ubus_client *cl, const char *obj,
++                const char *method, enum ubusd_acl_type type)
++{
++	return 0;
++}
++#endif
+ 
+ int
+ ubusd_acl_init_client(struct ubus_client *cl, int fd)
+@@ -205,6 +216,7 @@ ubusd_acl_free_client(struct ubus_client *cl)
+ 	free(cl->user);
+ }
+ 
++#ifdef ENABLE_ACL
+ static void
+ ubusd_acl_file_free(struct ubusd_acl_file *file)
+ {
+@@ -468,6 +480,12 @@ ubusd_acl_load(void)
+ 	ubusd_acl_seq++;
+ 	ubusd_send_event(NULL, "ubus.acl.sequence", ubusd_create_sequence_event_msg, NULL);
+ }
++#else
++void
++ubusd_acl_load(void)
++{
++}
++#endif
+ 
+ static void
+ ubusd_reply_add(struct ubus_object *obj)
+diff --git a/ubusd_monitor.c b/ubusd_monitor.c
+index bba741e..413c739 100644
+--- a/ubusd_monitor.c
++++ b/ubusd_monitor.c
+@@ -105,9 +105,11 @@ static int
+ ubusd_monitor_recv(struct ubus_client *cl, struct ubus_msg_buf *ub,
+ 		   const char *method, struct blob_attr *msg)
+ {
++#ifdef ENABLE_ACL
+ 	/* Only root is allowed for now */
+ 	if (cl->uid != 0 || cl->gid != 0)
+ 		return UBUS_STATUS_PERMISSION_DENIED;
++#endif
+ 
+ 	if (!strcmp(method, "add")) {
+ 		if (!ubusd_monitor_connect(cl, ub))
+-- 
+2.33.0
+

@@ -1,0 +1,46 @@
+pkgname=ubus
+pkgver=r339.2bebf93
+pkgrel=1
+pkgdesc="UBus from OpenWrt system"
+arch=('i686' 'x86_64')
+url='https://git.openwrt.org/project/ubus.git#commit=2bebf93cd3343fe49f22a05ef935e460d2d44f67'
+license=('GPL')
+depends=('libubox')
+makedepends=('cmake' 'git')
+conflicts=()
+source=("${pkgname}::git+${url}")
+sha1sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$pkgname"
+  git clean -xfd && git reset --hard
+
+  if [ -d "${startdir}/patches" ]; then
+    for patch in "${startdir}"/patches/*.patch; do
+      patch --forward --strip=1 --input="$patch"
+    done
+  fi
+}
+
+build() {
+  mkdir "${pkgname}/build"
+  cd "${pkgname}/build"
+
+  cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_LUA=OFF \
+    -DBUILD_EXAMPLES=OFF \
+    -DENABLE_SYSTEMD=ON
+  make
+}
+
+package() {
+  cd "${pkgname}/build"
+  DESTDIR="${pkgdir}" make install
+}

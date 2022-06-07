@@ -1,0 +1,44 @@
+pkgname=uci
+pkgver=r553.f84f49f
+pkgrel=1
+pkgdesc="UBus from OpenWrt system"
+arch=('i686' 'x86_64')
+url='https://git.openwrt.org/project/uci.git#commit=f84f49f00fb70364f58b4cce72f1796a7190d370'
+license=('GPL')
+depends=('libubox')
+makedepends=('cmake' 'git')
+conflicts=()
+source=("${pkgname}::git+${url}")
+sha1sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$pkgname"
+  git clean -xfd && git reset --hard
+
+  if [ -d "${startdir}/patches" ]; then
+    for patch in "${startdir}"/patches/*.patch; do
+      patch --forward --strip=1 --input="$patch"
+    done
+  fi
+}
+
+build() {
+  mkdir "${pkgname}/build"
+  cd "${pkgname}/build"
+
+  cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_LUA=OFF
+  make
+}
+
+package() {
+  cd "${pkgname}/build"
+  DESTDIR="${pkgdir}" make install
+}

@@ -1,0 +1,25 @@
+From d27516d11a60acd3b1ff428d7a0cd86e70e5dbc8 Mon Sep 17 00:00:00 2001
+From: Maxim Anisimov <maxim.anisimov.ua@gmail.com>
+Date: Mon, 20 Sep 2021 10:00:57 +0300
+Subject: [PATCH 4/4] ubusd change socket location
+
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 469826a..a81a2d7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -15,7 +15,7 @@ OPTION(ENABLE_SYSTEMD "systemd support" OFF)
+ OPTION(ENABLE_ACL "acl support" OFF)
+ 
+ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+-SET(UBUS_UNIX_SOCKET "/var/run/ubus/ubus.sock")
++SET(UBUS_UNIX_SOCKET "/var/run/ubus.sock")
+ SET(UBUS_MAX_MSGLEN 1048576)
+ 
+ ADD_DEFINITIONS( -DUBUS_UNIX_SOCKET="${UBUS_UNIX_SOCKET}")
+-- 
+2.33.0
+
